@@ -45,28 +45,30 @@ def ensure_venv_and_run():
         requirements_file = skill_dir / "requirements.txt"
         if requirements_file.exists():
             if os.name == 'nt':  # Windows
-                pip_exe = venv_dir / "Scripts" / "pip.exe"
-            else:
-                pip_exe = venv_dir / "bin" / "pip"
-
-            print("   Installing dependencies in isolated environment...")
-            subprocess.run(
-                [str(pip_exe), "install", "-q", "-r", str(requirements_file)],
-                check=True
-            )
-
-            # Also install patchright's chromium
-            print("   Setting up browser automation...")
-            if os.name == 'nt':
                 python_exe = venv_dir / "Scripts" / "python.exe"
             else:
                 python_exe = venv_dir / "bin" / "python"
 
+            print("   Installing dependencies in isolated environment...")
             subprocess.run(
-                [str(python_exe), "-m", "patchright", "install", "chromium"],
-                check=True,
-                capture_output=True
+                [str(python_exe), "-m", "pip", "install", "-q", "-r", str(requirements_file)],
+                check=True
             )
+
+            # Install patchright browser (chrome with fallback to chromium)
+            print("   Setting up browser automation...")
+            try:
+                subprocess.run(
+                    [str(python_exe), "-m", "patchright", "install", "chrome"],
+                    check=True,
+                    capture_output=True
+                )
+            except subprocess.CalledProcessError:
+                subprocess.run(
+                    [str(python_exe), "-m", "patchright", "install", "chromium"],
+                    check=True,
+                    capture_output=True
+                )
 
         print("✅ Environment ready! All dependencies isolated in .venv/")
 
@@ -77,5 +79,5 @@ def ensure_venv_and_run():
         print("   Or activate: source .venv/bin/activate")
 
 
-# Check environment when module is imported
-ensure_venv_and_run()
+if __name__ == "__main__":
+    ensure_venv_and_run()

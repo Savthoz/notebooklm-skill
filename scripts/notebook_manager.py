@@ -320,6 +320,16 @@ def main():
     add_parser.add_argument('--use-cases', help='Comma-separated use cases')
     add_parser.add_argument('--tags', help='Comma-separated tags')
 
+    # Update command
+    update_parser = subparsers.add_parser('update', help='Update notebook metadata')
+    update_parser.add_argument('--id', required=True, help='Notebook ID to update')
+    update_parser.add_argument('--name', help='Display name')
+    update_parser.add_argument('--description', help='Description')
+    update_parser.add_argument('--topics', help='Comma-separated topics')
+    update_parser.add_argument('--use-cases', help='Comma-separated use cases')
+    update_parser.add_argument('--tags', help='Comma-separated tags')
+    update_parser.add_argument('--url', help='NotebookLM / Gemini Notebook URL')
+
     # List command
     subparsers.add_parser('list', help='List all notebooks')
 
@@ -358,6 +368,26 @@ def main():
             tags=tags
         )
         print(json.dumps(notebook, indent=2))
+
+    elif args.command == 'update':
+        topics = [t.strip() for t in args.topics.split(',')] if args.topics else None
+        use_cases = [u.strip() for u in args.use_cases.split(',')] if args.use_cases else None
+        tags = [t.strip() for t in args.tags.split(',')] if args.tags else None
+
+        try:
+            notebook = library.update_notebook(
+                notebook_id=args.id,
+                name=args.name,
+                description=args.description,
+                topics=topics,
+                use_cases=use_cases,
+                tags=tags,
+                url=args.url
+            )
+            print(json.dumps(notebook, indent=2))
+        except ValueError as e:
+            print(f"❌ {e}")
+            return 1
 
     elif args.command == 'list':
         notebooks = library.list_notebooks()

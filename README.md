@@ -1,30 +1,26 @@
-> [!WARNING]
-> **This project is no longer maintained.** As of September 2026 the repository is archived: no updates, bug fixes or support. It may stop working when the upstream services change. Feel free to fork.
-
 <div align="center">
 
-# NotebookLM Claude Code Skill
+# NotebookLM / Gemini Notebook AI Agent Skill
 
-**Let [Claude Code](https://github.com/anthropics/claude-code) chat directly with NotebookLM for source-grounded answers based exclusively on your uploaded documents**
+**Enable AI coding assistants and agents (Antigravity, Claude Code, Cursor, etc.) to query NotebookLM directly for source-grounded answers based exclusively on your uploaded documents**
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![Claude Code Skill](https://img.shields.io/badge/Claude%20Code-Skill-purple.svg)](https://www.anthropic.com/news/skills)
-[![Based on](https://img.shields.io/badge/Based%20on-NotebookLM%20MCP-green.svg)](https://github.com/PleasePrompto/notebooklm-mcp)
-[![GitHub](https://img.shields.io/github/stars/PleasePrompto/notebooklm-skill?style=social)](https://github.com/PleasePrompto/notebooklm-skill)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Maintained%20Fork-brightgreen.svg)]()
 
-> Use this skill to query your Google NotebookLM notebooks directly from Claude Code for source-grounded, citation-backed answers from Gemini. Browser automation, library management, persistent auth. Drastically reduced hallucinations - answers only from your uploaded documents.
+> Use this skill to query your Google NotebookLM / Gemini Notebook notebooks directly from your AI agent for source-grounded, citation-backed answers from Gemini. Browser automation, library management, persistent auth. Drastically reduced hallucinations - answers only from your uploaded documents.
 
-[Installation](#installation) • [Quick Start](#quick-start) • [Why NotebookLM](#why-notebooklm-not-local-rag) • [How It Works](#how-it-works) • [MCP Alternative](https://github.com/PleasePrompto/notebooklm-mcp)
+[Installation](#installation) • [Quick Start](#quick-start) • [Why NotebookLM](#why-notebooklm-not-local-rag) • [How It Works](#how-it-works)
 
 </div>
 
 ---
 
-## ⚠️ Important: Local Claude Code Only
+## ⚠️ Important: Local Agent Environment Required
 
-**This skill works ONLY with local [Claude Code](https://github.com/anthropics/claude-code) installations, NOT in the web UI.**
+**This skill runs browser automation locally on your machine and requires network access.**
 
-The web UI runs skills in a sandbox without network access, which this skill requires for browser automation. You must use [Claude Code](https://github.com/anthropics/claude-code) locally on your machine.
+It works with local AI agent environments (such as Antigravity, Claude Code CLI, Cursor, etc.) where local Python scripts and browser automation can run. Sandboxed web chat interfaces without local tool execution capabilities cannot run the local browser automation scripts directly.
 
 ---
 
@@ -257,7 +253,7 @@ Uses realistic typing speeds and interaction patterns to avoid detection.
 Note: The MCP server uses the same Patchright library but via TypeScript/npm ecosystem.
 
 ### Dependencies
-- **patchright==1.55.2**: Browser automation
+- **patchright==1.62.3**: Browser automation (stealth Playwright fork)
 - **python-dotenv==1.0.0**: Environment configuration
 - Automatically installed in `.venv` on first use
 
@@ -266,7 +262,7 @@ Note: The MCP server uses the same Patchright library but via TypeScript/npm eco
 All data is stored locally within the skill directory:
 
 ```
-~/.claude/skills/notebooklm/data/
+<skill_directory>/data/
 ├── library.json       - Your notebook library with metadata
 ├── auth_info.json     - Authentication status info
 └── browser_state/     - Browser cookies and session data

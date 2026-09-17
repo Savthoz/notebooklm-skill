@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-09-17
+
+### Added
+- **Dual-Domain Support**: Seamlessly supports both `notebook.google.com` (post-Gemini rebrand) and legacy `notebooklm.google.com` with centralized URL validation (`is_notebook_url`)
+- **Library Update Command**: Added `notebook_manager.py update` CLI subcommand to update notebook metadata without losing creation history
+- **Browser Fallback Support**: Added graceful fallback to default Chromium if Google Chrome is not installed on the host
+- **Tool-Agnostic Support**: Generalized skill documentation and reminders to support Antigravity, Claude Code, Cursor, and any LLM agent
+
+### Changed
+- **Bumped Dependencies**: Updated `patchright` to `1.62.3`
+- **Modernized Automation**: Replaced deprecated Playwright typing APIs with resilient sequential typing and `page.fill` fallbacks
+- **Session Expiry Thresholds**: Added a 14-day hard expiry check to `auth_manager.py` to prevent hanging on silently expired session cookies
+
+### Fixed
+- **Stale Response Detection**: Implemented hash-based pre-submission baselining to prevent stale history from being returned instead of fresh answers
+- **Input Field Targeting**: Ensured typing targets the actual chat query textarea rather than header title or search input fields (Issue #54)
+- **Use Count Analytics**: Now automatically increments `use_count` and updates `last_used` in `NotebookLibrary` upon successful queries (Issue #55)
+- **Windows Setup & Encoding**: Fixed `pip.exe` replacement error during pip upgrades and forced UTF-8 console output for Windows systems
+- **Browser Mismatch in Setup**: Aligned browser installation across `setup_environment.py` and `__init__.py`
+- **Import Side Effects**: Eliminated blocking venv/browser setup side effects when importing the `scripts` package
+
 ## [1.3.0] - 2025-11-21
 
 ### Added

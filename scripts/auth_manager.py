@@ -24,7 +24,16 @@ from patchright.sync_api import sync_playwright, BrowserContext
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from config import BROWSER_STATE_DIR, STATE_FILE, AUTH_INFO_FILE, DATA_DIR
+from config import (
+    BROWSER_STATE_DIR,
+    STATE_FILE,
+    AUTH_INFO_FILE,
+    DATA_DIR,
+    DEFAULT_NOTEBOOK_URL,
+    is_notebook_url,
+    STALE_WARN_DAYS,
+    STALE_FAIL_DAYS,
+)
 from browser_utils import BrowserFactory
 
 
@@ -54,9 +63,13 @@ class AuthManager:
         if not self.state_file.exists():
             return False
 
-        # Check if state file is not too old (7 days)
+        # Check if state file has expired or is getting stale
         age_days = (time.time() - self.state_file.stat().st_mtime) / 86400
-        if age_days > 7:
+        if age_days > STALE_FAIL_DAYS:
+            print(f"❌ Browser state is {age_days:.1f} days old (expired, > {STALE_FAIL_DAYS} days)")
+            print("   Please re-authenticate: python scripts/run.py auth_manager.py reauth")
+            return False
+        elif age_days > STALE_WARN_DAYS:
             print(f"⚠️ Browser state is {age_days:.1f} days old, may need re-authentication")
 
         return True
@@ -109,12 +122,15 @@ class AuthManager:
                 headless=headless
             )
 
-            # Navigate to NotebookLM
+            # Navigate to NotebookLM / Gemini Notebook
             page = context.new_page()
-            page.goto("https://notebooklm.google.com", wait_until="domcontentloaded")
+            page.goto(DEFAULT_NOTEBOOK_URL, wait_until="domcontentloaded")
+
+            # Allow potential redirect to settle briefly
+            page.wait_for_timeout(1000)
 
             # Check if already authenticated
-            if "notebooklm.google.com" in page.url and "accounts.google.com" not in page.url:
+            if is_notebook_url(page.url):
                 print("  ✅ Already authenticated!")
                 self._save_browser_state(context)
                 return True
@@ -124,10 +140,12 @@ class AuthManager:
             print(f"  ⏱️  Waiting up to {timeout_minutes} minutes for login...")
 
             try:
-                # Wait for URL to change to NotebookLM (regex ensures it's the actual domain, not a parameter)
+                # Wait for URL to change to NotebookLM/Gemini Notebook
                 timeout_ms = int(timeout_minutes * 60 * 1000)
-                page.wait_for_url(re.compile(r"^https://notebooklm\.google\.com/"), timeout=timeout_ms)
+                page.wait_for_url(is_notebook_url, timeout=timeout_ms)
 
+                # Give the browser session a moment to finish setting cookies
+                page.wait_for_timeout(1500)
                 print(f"  ✅ Login successful!")
 
                 # Save authentication state
@@ -255,12 +273,13 @@ class AuthManager:
                 headless=True
             )
 
-            # Try to access NotebookLM
+            # Try to access NotebookLM / Gemini Notebook
             page = context.new_page()
-            page.goto("https://notebooklm.google.com", wait_until="domcontentloaded", timeout=30000)
+            page.goto(DEFAULT_NOTEBOOK_URL, wait_until="domcontentloaded", timeout=30000)
+            page.wait_for_timeout(2000)
 
             # Check if we can access NotebookLM
-            if "notebooklm.google.com" in page.url and "accounts.google.com" not in page.url:
+            if is_notebook_url(page.url):
                 print("  ✅ Authentication is valid")
                 return True
             else:

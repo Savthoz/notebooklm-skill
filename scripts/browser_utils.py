@@ -26,15 +26,30 @@ class BrowserFactory:
         and cookie workaround.
         """
         # Launch persistent context
-        context = playwright.chromium.launch_persistent_context(
-            user_data_dir=user_data_dir,
-            channel="chrome",  # Use real Chrome
-            headless=headless,
-            no_viewport=True,
-            ignore_default_args=["--enable-automation"],
-            user_agent=USER_AGENT,
-            args=BROWSER_ARGS
-        )
+        try:
+            context = playwright.chromium.launch_persistent_context(
+                user_data_dir=user_data_dir,
+                channel="chrome",  # Use real Chrome for better fingerprinting
+                headless=headless,
+                no_viewport=True,
+                ignore_default_args=["--enable-automation"],
+                user_agent=USER_AGENT,
+                args=BROWSER_ARGS
+            )
+        except Exception as e:
+            err_msg = str(e).lower()
+            if "executable" in err_msg or "cannot find" in err_msg or "channel" in err_msg:
+                print("  ⚠️ Google Chrome channel not found, falling back to default Chromium...")
+                context = playwright.chromium.launch_persistent_context(
+                    user_data_dir=user_data_dir,
+                    headless=headless,
+                    no_viewport=True,
+                    ignore_default_args=["--enable-automation"],
+                    user_agent=USER_AGENT,
+                    args=BROWSER_ARGS
+                )
+            else:
+                raise
 
         # Cookie Workaround for Playwright bug #36139
         # Session cookies (expires=-1) don't persist in user_data_dir automatically
@@ -66,27 +81,26 @@ class StealthUtils:
 
     @staticmethod
     def human_type(page: Page, selector: str, text: str, wpm_min: int = 320, wpm_max: int = 480):
-        """Type with human-like speed"""
-        element = page.query_selector(selector)
-        if not element:
-            # Try waiting if not immediately found
-            try:
-                element = page.wait_for_selector(selector, timeout=2000)
-            except:
-                pass
-        
-        if not element:
-            print(f"⚠️ Element not found for typing: {selector}")
-            return
+        """Type with human-like speed and resilience"""
+        locator = page.locator(selector).first
+        try:
+            locator.wait_for(state="visible", timeout=3000)
+        except Exception:
+            pass
 
-        # Click to focus
-        element.click()
-        
-        # Type
-        for char in text:
-            element.type(char, delay=random.uniform(25, 75))
-            if random.random() < 0.05:
-                time.sleep(random.uniform(0.15, 0.4))
+        try:
+            locator.click(force=True)
+            StealthUtils.random_delay(50, 150)
+            if hasattr(locator, "press_sequentially"):
+                locator.press_sequentially(text, delay=random.uniform(25, 60))
+            else:
+                locator.type(text, delay=random.uniform(25, 60))
+        except Exception:
+            # Fallback to page.fill if character-by-character typing fails
+            try:
+                page.fill(selector, text)
+            except Exception as e:
+                print(f"⚠️ Failed to type text: {e}")
 
     @staticmethod
     def realistic_click(page: Page, selector: str):
@@ -105,3 +119,4 @@ class StealthUtils:
         StealthUtils.random_delay(100, 300)
         element.click()
         StealthUtils.random_delay(100, 300)
+

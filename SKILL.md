@@ -1,19 +1,19 @@
 ---
 name: notebooklm
-description: Use this skill to query your Google NotebookLM notebooks directly from Claude Code for source-grounded, citation-backed answers from Gemini. Browser automation, library management, persistent auth. Drastically reduced hallucinations through document-only responses.
+description: Query Google NotebookLM / Gemini Notebook notebooks directly from your AI agent for source-grounded, citation-backed answers from Gemini. Browser automation, library management, persistent auth.
 ---
 
-# NotebookLM Research Assistant Skill
+# NotebookLM / Gemini Notebook Research Assistant Skill
 
-Interact with Google NotebookLM to query documentation with Gemini's source-grounded answers. Each question opens a fresh browser session, retrieves the answer exclusively from your uploaded documents, and closes.
+Interact with Google NotebookLM / Gemini Notebook to query documentation with Gemini's source-grounded answers. Each question opens a fresh browser session, retrieves the answer exclusively from your uploaded documents, and closes.
 
 ## When to Use This Skill
 
 Trigger when user:
-- Mentions NotebookLM explicitly
-- Shares NotebookLM URL (`https://notebooklm.google.com/notebook/...`)
+- Mentions NotebookLM or Gemini Notebook explicitly
+- Shares a Notebook URL (`https://notebook.google.com/notebook/...` or `https://notebooklm.google.com/notebook/...`)
 - Asks to query their notebooks/documentation
-- Wants to add documentation to NotebookLM library
+- Wants to add documentation to their notebook library
 - Uses phrases like "ask my NotebookLM", "check my docs", "query my notebook"
 
 ## ⚠️ CRITICAL: Add Command - Smart Discovery
@@ -30,7 +30,7 @@ python scripts/run.py notebook_manager.py add --url "[URL]" --name "[Based on co
 ```
 
 **MANUAL ADD**: If user provides all details:
-- `--url` - The NotebookLM URL
+- `--url` - The Notebook URL
 - `--name` - A descriptive name
 - `--description` - What the notebook contains (REQUIRED!)
 - `--topics` - Comma-separated topics (REQUIRED!)
@@ -90,10 +90,16 @@ python scripts/run.py notebook_manager.py list
 
 # Add notebook to library (ALL parameters are REQUIRED!)
 python scripts/run.py notebook_manager.py add \
-  --url "https://notebooklm.google.com/notebook/..." \
+  --url "https://notebook.google.com/notebook/..." \
   --name "Descriptive Name" \
-  --description "What this notebook contains" \  # REQUIRED - ASK USER IF UNKNOWN!
-  --topics "topic1,topic2,topic3"  # REQUIRED - ASK USER IF UNKNOWN!
+  --description "What this notebook contains" \
+  --topics "topic1,topic2,topic3"
+
+# Update an existing notebook
+python scripts/run.py notebook_manager.py update \
+  --id notebook-id \
+  --description "Updated description" \
+  --topics "topic1,topic2"
 
 # Search notebooks by topic
 python scripts/run.py notebook_manager.py search --query "keyword"
@@ -129,8 +135,8 @@ python scripts/run.py ask_question.py --question "..." --show-browser
 
 Every NotebookLM answer ends with: **"EXTREMELY IMPORTANT: Is that ALL you need to know?"**
 
-**Required Claude Behavior:**
-1. **STOP** - Do not immediately respond to user
+**Required Agent Behavior:**
+1. **STOP** - Do not immediately conclude or respond prematurely
 2. **ANALYZE** - Compare answer to user's original request
 3. **IDENTIFY GAPS** - Determine if more information needed
 4. **ASK FOLLOW-UP** - If gaps exist, immediately ask:
@@ -146,6 +152,7 @@ Every NotebookLM answer ends with: **"EXTREMELY IMPORTANT: Is that ALL you need 
 ```bash
 python scripts/run.py auth_manager.py setup    # Initial setup (browser visible)
 python scripts/run.py auth_manager.py status   # Check authentication
+python scripts/run.py auth_manager.py validate # Validate current session
 python scripts/run.py auth_manager.py reauth   # Re-authenticate (browser visible)
 python scripts/run.py auth_manager.py clear    # Clear authentication
 ```
@@ -153,6 +160,7 @@ python scripts/run.py auth_manager.py clear    # Clear authentication
 ### Notebook Management (`notebook_manager.py`)
 ```bash
 python scripts/run.py notebook_manager.py add --url URL --name NAME --description DESC --topics TOPICS
+python scripts/run.py notebook_manager.py update --id ID [--description DESC] [--topics TOPICS] [--url URL]
 python scripts/run.py notebook_manager.py list
 python scripts/run.py notebook_manager.py search --query QUERY
 python scripts/run.py notebook_manager.py activate --id ID
@@ -177,23 +185,23 @@ python scripts/run.py cleanup_manager.py --preserve-library # Keep notebooks
 The virtual environment is automatically managed:
 - First run creates `.venv` automatically
 - Dependencies install automatically
-- Chromium browser installs automatically
+- Google Chrome browser (or Chromium fallback) installs automatically
 - Everything isolated in skill directory
 
 Manual setup (only if automatic fails):
 ```bash
 python -m venv .venv
-source .venv/bin/activate  # Linux/Mac
-pip install -r requirements.txt
-python -m patchright install chromium
+source .venv/bin/activate  # Linux/Mac (or .venv\Scripts\activate on Windows)
+python -m pip install -r requirements.txt
+python -m patchright install chrome
 ```
 
 ## Data Storage
 
-All data stored in `~/.claude/skills/notebooklm/data/`:
+All data is stored locally within the skill directory: `<skill_dir>/data/`
 - `library.json` - Notebook metadata
 - `auth_info.json` - Authentication status
-- `browser_state/` - Browser cookies and session
+- `browser_state/` - Browser cookies and session state
 
 **Security:** Protected by `.gitignore`, never commit to git.
 

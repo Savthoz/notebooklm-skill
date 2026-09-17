@@ -79,9 +79,12 @@ TimeoutError: Waiting for selector failed
 
 **Solution:**
 ```bash
-# Kill hanging processes
-pkill -f chromium
+# Kill hanging processes (Linux/macOS)
 pkill -f chrome
+pkill -f chromium
+
+# Kill hanging processes (Windows)
+taskkill /F /IM chrome.exe
 
 # Clean browser state
 python scripts/run.py cleanup_manager.py --confirm --preserve-library
@@ -93,14 +96,11 @@ python scripts/run.py auth_manager.py reauth
 #### Browser not found error
 **Solution:**
 ```bash
-# Install Chromium via run.py (automatic)
+# Install Chrome via run.py (automatic)
 python scripts/run.py auth_manager.py status
-# run.py will install Chromium automatically
 
 # Or manual install if needed
-cd ~/.claude/skills/notebooklm
-source .venv/bin/activate
-python -m patchright install chromium
+python -m patchright install chrome
 ```
 
 ### Rate Limiting
@@ -145,7 +145,7 @@ python scripts/run.py notebook_manager.py search --query "keyword"
 
 # Add notebook if missing
 python scripts/run.py notebook_manager.py add \
-  --url "https://notebooklm.google.com/..." \
+  --url "https://notebook.google.com/..." \
   --name "Name" \
   --topics "topics"
 ```

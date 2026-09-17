@@ -16,6 +16,12 @@ from patchright.sync_api import BrowserContext, Page
 sys.path.insert(0, str(Path(__file__).parent))
 
 from browser_utils import StealthUtils
+from config import (
+    QUERY_INPUT_SELECTORS,
+    RESPONSE_SELECTORS,
+    THINKING_SELECTORS,
+    is_notebook_url,
+)
 
 
 class BrowserSession:
@@ -61,8 +67,8 @@ class BrowserSession:
             self.page.goto(self.notebook_url, wait_until="domcontentloaded", timeout=30000)
 
             # Check if login is needed
-            if "accounts.google.com" in self.page.url:
-                raise RuntimeError("Authentication required. Please run auth_manager.py setup first.")
+            if "accounts.google.com" in self.page.url or not is_notebook_url(self.page.url):
+                raise RuntimeError("Authentication required. Please run scripts/run.py auth_manager.py setup first.")
 
             # Wait for page to be ready
             self._wait_for_ready()
@@ -81,12 +87,13 @@ class BrowserSession:
 
     def _wait_for_ready(self):
         """Wait for NotebookLM page to be ready"""
-        try:
-            # Wait for chat input
-            self.page.wait_for_selector("textarea.query-box-input", timeout=10000, state="visible")
-        except Exception:
-            # Try alternative selector
-            self.page.wait_for_selector('textarea[aria-label="Feld für Anfragen"]', timeout=5000, state="visible")
+        for selector in QUERY_INPUT_SELECTORS:
+            try:
+                el = self.page.wait_for_selector(selector, timeout=5000, state="visible")
+                if el:
+                    return
+            except Exception:
+                continue
 
     def ask(self, question: str) -> Dict[str, Any]:
         """
@@ -108,11 +115,18 @@ class BrowserSession:
             previous_answer = self._snapshot_latest_response()
 
             # Find chat input
-            chat_input_selector = "textarea.query-box-input"
-            try:
-                self.page.wait_for_selector(chat_input_selector, timeout=5000, state="visible")
-            except Exception:
-                chat_input_selector = 'textarea[aria-label="Feld für Anfragen"]'
+            chat_input_selector = None
+            for selector in QUERY_INPUT_SELECTORS:
+                try:
+                    el = self.page.query_selector(selector)
+                    if el and el.is_visible():
+                        chat_input_selector = selector
+                        break
+                except Exception:
+                    continue
+
+            if not chat_input_selector:
+                chat_input_selector = QUERY_INPUT_SELECTORS[0]
                 self.page.wait_for_selector(chat_input_selector, timeout=5000, state="visible")
 
             # Click and type with human-like behavior
@@ -156,13 +170,13 @@ class BrowserSession:
 
     def _snapshot_latest_response(self) -> Optional[str]:
         """Get the current latest response text"""
-        try:
-            # Use correct NotebookLM selector
-            responses = self.page.query_selector_all(".to-user-container .message-text-content")
-            if responses:
-                return responses[-1].inner_text()
-        except Exception:
-            pass
+        for selector in RESPONSE_SELECTORS:
+            try:
+                responses = self.page.query_selector_all(selector)
+                if responses:
+                    return responses[-1].inner_text()
+            except Exception:
+                pass
         return None
 
     def _wait_for_latest_answer(self, previous_answer: Optional[str], timeout: int = 120) -> str:
@@ -172,35 +186,41 @@ class BrowserSession:
         stable_count = 0
 
         while time.time() - start_time < timeout:
-            # Check if NotebookLM is still thinking (most reliable indicator)
-            try:
-                thinking_element = self.page.query_selector('div.thinking-message')
-                if thinking_element and thinking_element.is_visible():
-                    time.sleep(0.5)
-                    continue
-            except Exception:
-                pass
+            # Check if NotebookLM is still thinking
+            is_thinking = False
+            for selector in THINKING_SELECTORS:
+                try:
+                    thinking_el = self.page.query_selector(selector)
+                    if thinking_el and thinking_el.is_visible():
+                        is_thinking = True
+                        break
+                except Exception:
+                    pass
 
-            try:
-                # Use correct NotebookLM selector
-                responses = self.page.query_selector_all(".to-user-container .message-text-content")
+            if is_thinking:
+                time.sleep(0.5)
+                continue
 
-                if responses:
-                    latest_text = responses[-1].inner_text().strip()
+            for selector in RESPONSE_SELECTORS:
+                try:
+                    responses = self.page.query_selector_all(selector)
+                    if responses:
+                        latest_text = responses[-1].inner_text().strip()
 
-                    # Check if it's a new response
-                    if latest_text and latest_text != previous_answer:
-                        # Check if text is stable (3 consecutive polls)
-                        if latest_text == last_candidate:
-                            stable_count += 1
-                            if stable_count >= 3:
-                                return latest_text
-                        else:
-                            stable_count = 1
-                            last_candidate = latest_text
+                        # Check if it's a new response
+                        if latest_text and latest_text != previous_answer:
+                            # Check if text is stable (3 consecutive polls)
+                            if latest_text == last_candidate:
+                                stable_count += 1
+                                if stable_count >= 3:
+                                    return latest_text
+                            else:
+                                stable_count = 1
+                                last_candidate = latest_text
+                except Exception:
+                    pass
 
-            except Exception:
-                pass
+            time.sleep(0.5)
 
             time.sleep(0.5)
 

@@ -50,39 +50,53 @@ class SkillEnvironment:
         if self.requirements_file.exists():
             print("📦 Installing dependencies...")
             try:
-                # Upgrade pip first
+                env_utf8 = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+
+                # Upgrade pip first (using python -m pip avoids pip.exe lock on Windows)
                 subprocess.run(
-                    [str(self.venv_pip), "install", "--upgrade", "pip"],
+                    [str(self.venv_python), "-m", "pip", "install", "--upgrade", "pip"],
                     check=True,
                     capture_output=True,
-                    text=True
+                    text=True,
+                    env=env_utf8
                 )
 
                 # Install requirements
                 result = subprocess.run(
-                    [str(self.venv_pip), "install", "-r", str(self.requirements_file)],
+                    [str(self.venv_python), "-m", "pip", "install", "-r", str(self.requirements_file)],
                     check=True,
                     capture_output=True,
-                    text=True
+                    text=True,
+                    env=env_utf8
                 )
                 print("✅ Dependencies installed")
 
-                # Install Chrome for Patchright (not Chromium!)
+                # Install Chrome for Patchright
                 # Using real Chrome ensures cross-platform reliability and consistent browser fingerprinting
-                # See: https://github.com/Kaliiiiiiiiii-Vinyzu/patchright-python#anti-detection
                 print("🌐 Installing Google Chrome for Patchright...")
                 try:
                     subprocess.run(
                         [str(self.venv_python), "-m", "patchright", "install", "chrome"],
                         check=True,
                         capture_output=True,
-                        text=True
+                        text=True,
+                        env=env_utf8
                     )
                     print("✅ Chrome installed")
                 except subprocess.CalledProcessError as e:
                     print(f"⚠️ Warning: Failed to install Chrome: {e}")
-                    print("   You may need to run manually: python -m patchright install chrome")
-                    print("   Chrome is required (not Chromium) for reliability!")
+                    print("   Attempting fallback installation of Chromium...")
+                    try:
+                        subprocess.run(
+                            [str(self.venv_python), "-m", "patchright", "install", "chromium"],
+                            check=True,
+                            capture_output=True,
+                            text=True,
+                            env=env_utf8
+                        )
+                        print("✅ Chromium installed as fallback")
+                    except Exception as err:
+                        print(f"⚠️ Failed to install fallback browser: {err}")
 
                 return True
             except subprocess.CalledProcessError as e:

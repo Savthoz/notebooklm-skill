@@ -9,6 +9,14 @@ import sys
 import subprocess
 from pathlib import Path
 
+# Force UTF-8 encoding on Windows to support emojis in console
+if sys.platform == 'win32':
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
 
 def get_venv_python():
     """Get the virtual environment Python executable"""
@@ -50,9 +58,9 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python run.py <script_name> [args...]")
         print("\nAvailable scripts:")
-        print("  ask_question.py    - Query NotebookLM")
+        print("  ask_question.py     - Query NotebookLM / Gemini Notebook")
         print("  notebook_manager.py - Manage notebook library")
-        print("  session_manager.py  - Manage sessions")
+        print("  browser_session.py  - Manage persistent browser sessions")
         print("  auth_manager.py     - Handle authentication")
         print("  cleanup_manager.py  - Clean up skill data")
         sys.exit(1)
